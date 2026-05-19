@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mystic-900: #0f172a;
+  --color-mystic-800: #1e293b;
+  --color-mystic-accent: #f59e0b;
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-mystic-800/50 backdrop-blur-md border border-white/10;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+}
+
+body {
+  @apply bg-mystic-900 text-slate-200 min-h-screen overflow-x-hidden;
+  background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+}
