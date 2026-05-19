@@ -1,0 +1,60 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1e2f" />
+      <stop offset="100%" stop-color="#2a2a4a" />
+    </linearGradient>
+    <linearGradient id="border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9b8bf4" />
+      <stop offset="50%" stop-color="#d8b4e2" />
+      <stop offset="100%" stop-color="#9b8bf4" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="600" fill="url(#bg)" rx="20" ry="20" />
+
+  <!-- Border -->
+  <rect x="15" y="15" width="370" height="570" fill="none" stroke="url(#border)" stroke-width="4" rx="10" ry="10" />
+  <rect x="25" y="25" width="350" height="550" fill="none" stroke="#9b8bf4" stroke-width="1" stroke-dasharray="5,5" rx="5" ry="5" />
+
+  <!-- Corner Ornaments -->
+  <circle cx="25" cy="25" r="5" fill="#d8b4e2" />
+  <circle cx="375" cy="25" r="5" fill="#d8b4e2" />
+  <circle cx="25" cy="575" r="5" fill="#d8b4e2" />
+  <circle cx="375" cy="575" r="5" fill="#d8b4e2" />
+
+  <!-- Roman Numeral / Value -->
+  <text x="200" y="70" font-family="serif" font-size="30" fill="#d8b4e2" text-anchor="middle" font-weight="bold" filter="url(#glow)">
+    19
+  </text>
+
+  <!-- Decorative Line -->
+  <line x1="100" y1="90" x2="300" y2="90" stroke="#9b8bf4" stroke-width="2" />
+  <path d="M 190 90 Q 200 100 210 90" fill="none" stroke="#9b8bf4" stroke-width="2" />
+
+  <!-- Central Symbol Placeholder (Star/Moon pattern) -->
+  <g transform="translate(200, 300)">
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#9b8bf4" stroke-width="2" stroke-opacity="0.5"/>
+    <circle cx="0" cy="0" r="80" fill="none" stroke="#d8b4e2" stroke-width="1" stroke-dasharray="10,5"/>
+    <path d="M 0 -60 L 15 -15 L 60 0 L 15 15 L 0 60 L -15 15 L -60 0 L -15 -15 Z" fill="none" stroke="#9b8bf4" stroke-width="2" filter="url(#glow)"/>
+    <circle cx="0" cy="0" r="10" fill="#d8b4e2" />
+  </g>
+
+  <!-- Decorative Line -->
+  <line x1="100" y1="510" x2="300" y2="510" stroke="#9b8bf4" stroke-width="2" />
+  <path d="M 190 510 Q 200 500 210 510" fill="none" stroke="#9b8bf4" stroke-width="2" />
+
+  <!-- Title -->
+  <text x="200" y="550" font-family="serif" font-size="28" fill="#d8b4e2" text-anchor="middle" font-weight="bold" filter="url(#glow)">
+    Сонце
+  </text>
+</svg>

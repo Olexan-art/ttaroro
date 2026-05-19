@@ -44,7 +44,8 @@ function getZodiacSign(date: Date): string {
 
 export async function generatePersonalizedReading(
   cards: CardInput[],
-  user: UserInfo
+  user: UserInfo,
+  spreadLabel = 'Три карти'
 ): Promise<TarotReading> {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined;
 
@@ -70,7 +71,7 @@ export async function generatePersonalizedReading(
 Людина: ${user.name}, приблизний вік ${age} років, знак зодіаку ${zodiac}.
 Її запит / ситуація: ${user.question}
 
-Розклад «Три карти»:
+Розклад «${spreadLabel}» (${cards.length} карт${cards.length === 1 ? 'а' : 'и'}):
 ${cardsText}
 
 Зроби глибоке, щире й персоналізоване трактування цього розкладу. Враховуй:
@@ -84,24 +85,14 @@ ${cardsText}
 {
   "overallTheme": "Загальна тема розкладу — одне ємне речення",
   "cardInterpretations": [
-    {
-      "position": "Минуле",
-      "cardName": "назва карти",
+    ${cards.map(c => `{
+      "position": "${c.position}",
+      "cardName": "${c.name}",
       "interpretation": "Персоналізоване трактування 3–4 речення з урахуванням питання"
-    },
-    {
-      "position": "Сьогодення",
-      "cardName": "назва карти",
-      "interpretation": "Персоналізоване трактування 3–4 речення"
-    },
-    {
-      "position": "Майбутнє",
-      "cardName": "назва карти",
-      "interpretation": "Персоналізоване трактування 3–4 речення"
-    }
+    }`).join(',\n    ')}
   ],
-  "synthesis": "Як усі три карти пов'язані між собою і що говорять про ситуацію загалом — 3–4 речення",
-  "advice": "Конкретна порада та напрям дій для цієї людини — 2–3 речення"
+  "synthesis": "Як усі карти пов'язані між собою і що говорять про ситуацію загалом — 3–4 речення",
+  "advice": "Конкретна порада та напрям дій для ${user.name} — 2–3 речення"
 }`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
