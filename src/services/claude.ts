@@ -42,16 +42,18 @@ function getZodiacSign(date: Date): string {
   return 'Риби ♓';
 }
 
+const MODEL = 'openrouter/free';
+
 export async function generatePersonalizedReading(
   cards: CardInput[],
   user: UserInfo,
   spreadLabel = 'Три карти'
 ): Promise<TarotReading> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY as string | undefined;
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined;
 
   if (!apiKey) {
     throw new Error(
-      'API ключ Anthropic не налаштовано. Додайте VITE_ANTHROPIC_API_KEY до файлу .env'
+      'API ключ OpenRouter не налаштовано. Додайте VITE_OPENROUTER_API_KEY до файлу .env'
     );
   }
 
@@ -60,66 +62,93 @@ export async function generatePersonalizedReading(
   const age = new Date().getFullYear() - birthDate.getFullYear();
 
   const cardsText = cards
-    .map(
-      (c) =>
-        `• ${c.position}: «${c.name}» (${c.isReversed ? 'перевернута' : 'пряма'}) — ${c.meaning}`
-    )
+    .map((c) => `${c.position}: ${c.name} (${c.isReversed ? 'перевернута' : 'пряма'}) — ${c.meaning}`)
     .join('\n');
 
-  const prompt = `Ти — мудрий і досвідчений таролог, що читає карти українською мовою з глибиною, теплотою та інтуїцією.
+  const positionsList = cards.map((c) => c.position).join(', ');
 
-Людина: ${user.name}, приблизний вік ${age} років, знак зодіаку ${zodiac}.
-Її запит / ситуація: ${user.question}
+  const prompt = `Ти — мудрий таролог, що читає карти українською мовою з глибиною та інтуїцією.
 
-Розклад «${spreadLabel}» (${cards.length} карт${cards.length === 1 ? 'а' : 'и'}):
+Людина: ${user.name}, вік ~${age} років, знак зодіаку ${zodiac}.
+Запит: ${user.question}
+
+Розклад "${spreadLabel}":
 ${cardsText}
 
-Зроби глибоке, щире й персоналізоване трактування цього розкладу. Враховуй:
-• характер знаку зодіаку та вік людини;
-• конкретне питання або ситуацію;
-• взаємодію між картами як єдину розповідь;
-• чи карта пряма чи перевернута;
-• часовий вектор: минуле → сьогодення → майбутнє.
+Зроби персоналізоване трактування враховуючи знак зодіаку, вік, питання, взаємодію карт та їх положення.
 
-Відповідай ВИКЛЮЧНО у форматі JSON без будь-яких пояснень поза ним:
-{
-  "overallTheme": "Загальна тема розкладу — одне ємне речення",
-  "cardInterpretations": [
-    ${cards.map(c => `{
-      "position": "${c.position}",
-      "cardName": "${c.name}",
-      "interpretation": "Персоналізоване трактування 3–4 речення з урахуванням питання"
-    }`).join(',\n    ')}
-  ],
-  "synthesis": "Як усі карти пов'язані між собою і що говорять про ситуацію загалом — 3–4 речення",
-  "advice": "Конкретна порада та напрям дій для ${user.name} — 2–3 речення"
-}`;
+Поверни ТІЛЬКИ JSON (без markdown, без пояснень, без тексту поза JSON):
+{"overallTheme":"...","cardInterpretations":[{"position":"...","cardName":"...","interpretation":"..."}],"synthesis":"...","advice":"..."}
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+Масив cardInterpretations повинен мати ${cards.length} елемент(и) для позицій: ${positionsList}.
+Кожен рядок значення — без переносів рядків всередині рядка.`;
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Mystic Tarot',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+      model: MODEL,
       messages: [{ role: 'user', content: prompt }],
+      max_tokens: 2048,
+      temperature: 0.8,
     }),
   });
 
   if (!response.ok) {
     const err = await response.text().catch(() => String(response.status));
-    throw new Error(`Помилка API: ${err}`);
+    throw new Error(`Помилка OpenRouter API: ${err}`);
   }
 
-  const data = await response.json() as { content: { text: string }[] };
-  const text = data.content[0]?.text ?? '';
+  const data = await response.json() as { choices: { message: { content: string } }[] };
+  let text = data.choices[0]?.message?.content ?? '';
 
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Не вдалося розпарсити відповідь від AI');
+  // strip markdown fences and <think> blocks (DeepSeek etc.)
+  text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-  return JSON.parse(match[0]) as TarotReading;
+  return parseReading(text);
+}
+
+function extractStr(text: string, key: string): string {
+  const m = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*?)"`));
+  return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"') : '';
+}
+
+function parseReading(text: string): TarotReading {
+  // 1. try standard JSON parse on the first {...} block
+  const block = text.match(/\{[\s\S]*\}/)?.[0];
+  if (block) {
+    try {
+      return JSON.parse(block) as TarotReading;
+    } catch {
+      // fall through to field-by-field extraction
+    }
+  }
+
+  // 2. extract each field individually with regex — survives broken JSON
+  const overallTheme = extractStr(text, 'overallTheme');
+  const synthesis    = extractStr(text, 'synthesis');
+  const advice       = extractStr(text, 'advice');
+
+  const cardInterpretations: CardReading[] = [];
+  const cardRe = /"position"\s*:\s*"([^"]+)"\s*,\s*"cardName"\s*:\s*"([^"]+)"\s*,\s*"interpretation"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = cardRe.exec(text)) !== null) {
+    cardInterpretations.push({
+      position: m[1],
+      cardName: m[2],
+      interpretation: m[3].replace(/\\n/g, ' ').replace(/\\"/g, '"'),
+    });
+  }
+
+  if (!overallTheme && cardInterpretations.length === 0) {
+    throw new Error('Не вдалося розпарсити відповідь від AI');
+  }
+
+  return { overallTheme, cardInterpretations, synthesis, advice };
 }

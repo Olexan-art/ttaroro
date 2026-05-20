@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TarotCard } from '../data/tarot-data';
+import type { TarotCard } from '../data/tarot-data';
 
 interface DrawnCard extends TarotCard {
   isReversed: boolean;
