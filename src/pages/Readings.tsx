@@ -1,3 +1,7 @@
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { AIChat } from "../components/AIChat";
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getRandomCards, type TarotCard } from '../data/tarot-data';
@@ -191,7 +195,7 @@ export const Readings: React.FC = () => {
                   <motion.img
                     src={card.image}
                     alt={card.name}
-                    className={`w-full h-full object-cover transition-transform duration-1000 ${card.isReversed ? 'rotate-180' : ''}`}
+                    className={`w-full h-full object-cover transition-transform duration-1000 hover:scale-110 hover:rotate-2 ${card.isReversed ? 'rotate-180' : ''}`}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = `https://placehold.co/400x600/1e1e2f/9b8bf4?text=${encodeURIComponent(card.name)}`;
                     }}
@@ -262,12 +266,32 @@ export const Readings: React.FC = () => {
             transition={{ duration: 0.8 }}
             className="mt-14 w-full max-w-5xl"
           >
-            <div className="flex items-center gap-4 mb-10">
-              <div className="flex-1 h-px bg-mystic-700/50" />
-              <span className="text-mystic-accent text-lg font-bold tracking-widest font-serif">✦ ТРАКТУВАННЯ ✦</span>
-              <div className="flex-1 h-px bg-mystic-700/50" />
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-4">
+              <div className="flex-1 h-px bg-mystic-700/50 hidden sm:block" />
+              <span className="text-mystic-accent text-lg font-bold tracking-widest font-serif whitespace-nowrap">✦ ТРАКТУВАННЯ ✦</span>
+              <div className="flex-1 h-px bg-mystic-700/50 hidden sm:block" />
+              <button
+                onClick={async () => {
+                  const element = document.getElementById('reading-content');
+                  if (!element) return;
+                  const canvas = await html2canvas(element, { backgroundColor: '#1e1e2f' });
+                  const imgData = canvas.toDataURL('image/png');
+                  const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                  });
+                  pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                  pdf.save(`tarot-reading-${new Date().toISOString().split('T')[0]}.pdf`);
+                }}
+                className="flex items-center gap-2 glass px-4 py-2 rounded-full text-sm text-mystic-accent hover:bg-mystic-accent hover:text-mystic-900 transition-colors border border-mystic-accent/30"
+              >
+                <Download size={16} />
+                <span>Зберегти PDF</span>
+              </button>
             </div>
 
+            <div id="reading-content" className="bg-mystic-950 p-4 rounded-3xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -332,6 +356,10 @@ export const Readings: React.FC = () => {
               </div>
               <p className="text-white text-sm leading-relaxed font-medium">{reading.advice}</p>
             </motion.div>
+
+            </div>
+
+            <AIChat cards={cards} userInfo={userInfo} reading={reading} />
           </motion.div>
         )}
       </AnimatePresence>

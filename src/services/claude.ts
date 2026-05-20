@@ -152,3 +152,128 @@ function parseReading(text: string): TarotReading {
 
   return { overallTheme, cardInterpretations, synthesis, advice };
 }
+
+export async function chatAboutReading(
+  cards: CardInput[],
+  user: UserInfo,
+  reading: TarotReading,
+  conversation: { role: 'user' | 'assistant'; content: string }[]
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined;
+
+  if (!apiKey) {
+    throw new Error(
+      'API ключ OpenRouter не налаштовано. Додайте VITE_OPENROUTER_API_KEY до файлу .env'
+    );
+  }
+
+  const birthDate = new Date(user.birthDate);
+  const zodiac = getZodiacSign(birthDate);
+  const age = new Date().getFullYear() - birthDate.getFullYear();
+
+  const cardsText = cards
+    .map((c) => `${c.position}: ${c.name} (${c.isReversed ? 'перевернута' : 'пряма'})`)
+    .join('\n');
+
+  const systemPrompt = `Ти — мудрий таролог. Твоє завдання відповідати на питання користувача ВИКЛЮЧНО щодо його поточного розкладу.
+Людина: ${user.name}, вік ~${age} років, знак зодіаку ${zodiac}.
+Запит: ${user.question}
+Поточні карти:
+${cardsText}
+
+Вже надане трактування:
+${JSON.stringify(reading, null, 2)}
+
+Відповідай українською мовою. Будь лаконічним, емпатичним і зосереджуйся на поточних картах. Якщо користувач запитує щось, не пов'язане з розкладом, ввічливо поверни його до теми карт. Не використовуй markdown форматування, відповідай звичайним текстом.`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...conversation
+  ];
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Mystic Tarot',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: messages,
+      max_tokens: 1024,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text().catch(() => String(response.status));
+    throw new Error(`Помилка OpenRouter API: ${err}`);
+  }
+
+  const data = await response.json() as { choices: { message: { content: string } }[] };
+  let text = data.choices[0]?.message?.content ?? '';
+
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  return text;
+}
+
+export async function generateCardOfTheDayReading(
+  card: CardInput,
+  user: UserInfo,
+  newsContext: string,
+  timeframeLabel: string
+): Promise<{ text: string }> {
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined;
+
+  if (!apiKey) {
+    throw new Error(
+      'API ключ OpenRouter не налаштовано. Додайте VITE_OPENROUTER_API_KEY до файлу .env'
+    );
+  }
+
+  const birthDate = new Date(user.birthDate);
+  const zodiac = getZodiacSign(birthDate);
+
+  const prompt = `Ти — мудрий таролог. Прочитай Карту Дня для користувача.
+Людина: ${user.name}, знак зодіаку ${zodiac}.
+Період: ${timeframeLabel}.
+
+Випала карта: ${card.name} (${card.isReversed ? 'перевернута' : 'пряма'}) — ${card.meaning}
+
+Ось реальні новини та події у світі за цей день:
+${newsContext}
+
+Твоє завдання: Зроби красиве, містичне трактування цієї карти для користувача. Обов'язково вплітай у своє трактування надані новини (або їх відсутність), пов'язуючи загальносвітові або американські події з архетипом карти та життям людини.
+Наприклад: "Сьогодні, коли у світі відбуваються такі-то події [з новин], твоя карта вказує на те, що...".
+Відповідай українською мовою. Не використовуй markdown форматування, відповідай звичайним текстом.`;
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Mystic Tarot',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1024,
+      temperature: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text().catch(() => String(response.status));
+    throw new Error(`Помилка OpenRouter API: ${err}`);
+  }
+
+  const data = await response.json() as { choices: { message: { content: string } }[] };
+  let text = data.choices[0]?.message?.content ?? '';
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  return { text };
+}

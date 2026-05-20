@@ -4,6 +4,7 @@ import { Glossary } from './pages/Glossary';
 import { Readings } from './pages/Readings';
 import { About } from './pages/About';
 import { Profile } from './pages/Profile';
+import { CardOfTheDay } from './pages/CardOfTheDay';
 
 const Home = () => (
   <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4 py-12">
@@ -42,6 +43,9 @@ const Home = () => (
     >
       <Link to="/readings" className="glass px-10 py-4 rounded-full hover:bg-mystic-800/80 hover:shadow-[0_0_20px_rgba(197,160,89,0.2)] transition-all font-serif font-bold text-mystic-accent border-mystic-accent/30 text-lg uppercase tracking-wider">
         Почати сеанс
+      </Link>
+      <Link to="/card-of-the-day" className="glass px-10 py-4 rounded-full hover:bg-mystic-800/80 hover:shadow-[0_0_20px_rgba(197,160,89,0.2)] transition-all font-serif font-bold text-mystic-accent border-mystic-accent/30 text-lg uppercase tracking-wider">
+        Карта Дня
       </Link>
       <Link to="/about" className="glass px-10 py-4 rounded-full hover:bg-white/10 transition-all font-serif text-lg text-slate-200">
         Про портал
@@ -82,6 +86,7 @@ const App = () => {
             <div className="flex gap-6 font-serif text-lg">
               <Link to="/about" className="hover:text-mystic-accent transition-colors text-slate-300">Про нас</Link>
               <Link to="/readings" className="hover:text-mystic-accent transition-colors text-slate-300">Ворожіння</Link>
+              <Link to="/card-of-the-day" className="hover:text-mystic-accent transition-colors text-slate-300">Карта Дня</Link>
               <Link to="/glossary" className="hover:text-mystic-accent transition-colors text-slate-300">Глосарій</Link>
               <Link to="/profile" className="hover:text-mystic-accent transition-colors text-mystic-accent/80 border border-mystic-accent/30 px-4 rounded-full hover:bg-mystic-accent/10">Кабінет</Link>
             </div>
@@ -94,6 +99,7 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/glossary" element={<Glossary />} />
             <Route path="/readings" element={<Readings />} />
+            <Route path="/card-of-the-day" element={<CardOfTheDay />} />
             <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
